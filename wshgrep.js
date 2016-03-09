@@ -58,33 +58,45 @@ Array.prototype.indexOf = function (item) {
 
 Array.prototype.contains = function (item) { return this.indexOf(item) >= 0; };
 
-var args = Array.fromEnumerable(WScript.Arguments)
-                .partition(function (arg) { return /^-v$/.test(arg); }),
-    stdin = WScript.StdIn,
+var stdin = WScript.StdIn,
     stdout = WScript.StdOut,
     stderr = WScript.StdErr;
 
-var flags = args.shift(),
-    tail = args.shift(),
-    pattern = tail[0];
-
-var filter =
-    pattern
-    ? (function (re) { return function (s) { return re.test(s); } })(new RegExp(pattern))
-    : function () { return true };
-
-if (flags.contains('-v')) {
-    filter = (function (filter) { return function (s) { return !filter(s); }; })(filter);
+try {
+    var status = main(Array.fromEnumerable(WScript.Arguments));
+    WScript.Quit(status);
+}
+catch (e) {
+    stderr.WriteLine('string' === typeof e.message ? e.message : e.toString());
+    WScript.Quit(2);
 }
 
-var found = false;
+function main(args) {
 
-var readln = function (ts) { return ts.AtEndOfStream ? null : ts.ReadLine(); }
-for (var line = readln(stdin) ; line != null; line = readln(stdin)) {
-    if (filter(line)) {
-        found = true;
-        stdout.WriteLine(line);
+    args = args.partition(function (arg) { return /^-v$/.test(arg); });
+
+    var flags = args.shift(),
+        tail = args.shift(),
+        pattern = tail[0];
+
+    var filter =
+        pattern
+        ? (function (re) { return function (s) { return re.test(s); } })(new RegExp(pattern))
+        : function () { return true };
+
+    if (flags.contains('-v')) {
+        filter = (function (filter) { return function (s) { return !filter(s); }; })(filter);
     }
-}
 
-WScript.Quit(found ? 0 : 1);
+    var found = false;
+
+    var readln = function (ts) { return ts.AtEndOfStream ? null : ts.ReadLine(); }
+    for (var line = readln(stdin) ; line != null; line = readln(stdin)) {
+        if (filter(line)) {
+            found = true;
+            stdout.WriteLine(line);
+        }
+    }
+
+    return found ? 0 : 1;
+}
