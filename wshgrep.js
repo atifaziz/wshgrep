@@ -77,9 +77,14 @@ if (flags.contains('-v')) {
     filter = (function (filter) { return function (s) { return !filter(s); }; })(filter);
 }
 
+var found = false;
+
 var readln = function (ts) { return ts.AtEndOfStream ? null : ts.ReadLine(); }
 for (var line = readln(stdin) ; line != null; line = readln(stdin)) {
     if (filter(line)) {
+        found = true;
         stdout.WriteLine(line);
     }
 }
+
+WScript.Quit(found ? 0 : 1);
